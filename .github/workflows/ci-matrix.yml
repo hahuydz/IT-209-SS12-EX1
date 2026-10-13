@@ -1,0 +1,41 @@
+name: Java CI Matrix Strategy
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  test-matrix:
+    name: Test on Java ${{ matrix.java-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        java-version: ['17', '21']
+
+    steps:
+      - name: Checkout mã nguồn
+        uses: actions/checkout@v5
+
+      - name: Tạo các tệp cấu hình Gradle giả lập để hỗ trợ Cache
+        run: |
+          mkdir -p gradle/wrapper
+          echo "plugins { id 'java' }" > build.gradle
+          echo "rootProject.name = 'demo-matrix'" > settings.gradle
+          touch gradle/wrapper/gradle-wrapper.properties
+
+      - name: Thiết lập môi trường Java JDK ${{ matrix.java-version }} và bật Gradle Cache
+        uses: actions/setup-java@v5
+        with:
+          java-version: ${{ matrix.java-version }}
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Kiểm tra quyền thực thi gradlew (hoặc chạy test giả lập)
+        run: |
+          if [ -f ./gradlew ]; then
+            chmod +x gradlew
+            ./gradlew test
+          else
+            echo "Đang chạy test giả lập cho ma trận JDK ${{ matrix.java-version }}"
+            gradle --version
+          fi
